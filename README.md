@@ -1,3 +1,3 @@
 # Docker
 
-configurando docker
+configurando docker para usar com django
