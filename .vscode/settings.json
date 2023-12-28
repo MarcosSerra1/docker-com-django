@@ -9,7 +9,7 @@
         120
     ],
     "workbench.colorTheme": "OM Theme (Default Dracula Italic)",
-    "workbench.iconTheme": "vscode-icons",
+    "workbench.iconTheme": "material-icon-theme",
     "code-runner.executorMap": {
         "python": "clear ; python -u"
     },
