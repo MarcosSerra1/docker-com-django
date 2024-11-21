@@ -8,6 +8,11 @@ check_command() {
     fi
 }
 
+# Criar migrações
+echo "🟡 Criando migrações..."
+python manage.py makemigrations
+check_command "makemigrations"
+
 # Rodar migrações
 echo "🟡 Rodando migrações..."
 python manage.py migrate

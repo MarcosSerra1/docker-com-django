@@ -10,14 +10,16 @@ A estrutura do projeto é organizada da seguinte forma:
 
 ```plaintext
 project-root/
-    ├── app/ (Diretório da aplicação Django)
+    ├── core/ (Diretório da aplicação Django)
         ├── settings.py
         ├── wsgi.py
         ├── ...
     ├── other_apps/ (Outros diretórios de Apps do projeto)
     ├── static/
     ├── media/
-    ├── wait-for-it.sh  
+    ├── scripts/
+    |   ├── wait-for-it.sh
+    |   └── entrypoint.sh
     ├── Dockerfile  
     ├── docker-compose.yml  
     ├── nginx.conf  
@@ -34,6 +36,7 @@ project-root/
 - **requirements.txt**: Lista todas as dependências Python da aplicação.
 - **.env**: Arquivo de variáveis de ambiente para configuração dos serviços.
 - **wait-for-it.sh**: Script utilizado para garantir que o banco de dados PostgreSQL esteja pronto antes de rodar as migrações e iniciar o servidor.
+- **entrypoint.sh**: Script utilizado para criar super usuário, criar migrações, aplicar as migrações e iniciar o servidor.
 
 > **Obs.:** O arquivo `wait-for-it.sh` está disponível em:
 [https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh](https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh).
@@ -64,13 +67,13 @@ DATABASES = {
 
 ```python
 # Static files (CSS, JavaScript, Images, ...)
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'), ]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (Images, Files)
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 ```
 
 <br>
@@ -96,10 +99,16 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl
 
 # Copia o script wait-for-it.sh para o container
-COPY wait-for-it.sh /app/
+COPY /scripts/wait-for-it.sh /app/
+
+# Copia o script entrypoint.sh para o container
+COPY /scripts/entrypoint.sh /app/
 
 # Atribui permissão de execução para o wait-for-it.sh
 RUN chmod +x /app/wait-for-it.sh
+
+# Atribui permissão de execução para o entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Copia o arquivo requirements.txt com as dependências do projeto
 COPY requirements.txt /app/
@@ -151,10 +160,7 @@ services:
     build: .  
     container_name: django_app  
     command: >  
-      sh -c "./wait-for-it.sh db:5432 -- python manage.py makemigrations &&  
-             python manage.py migrate &&  
-             python manage.py collectstatic --noinput &&  
-             gunicorn app.wsgi:application --bind 0.0.0.0:8000"  
+      sh -c "./wait-for-it.sh db:5432 -- ./entrypoint.sh"
     volumes:  
       - static_volume:/app/staticfiles  
       - media_volume:/app/media  
@@ -194,7 +200,7 @@ volumes:
 - **db**: Serviço do PostgreSQL. Ele utiliza o volume `postgres_data` para persistir dados e as variáveis de ambiente no arquivo `.env`.  
 - **web**: Serviço da aplicação Django, que constrói a imagem a partir do `Dockerfile` e executa comandos como migrações, coleta de estáticos e inicialização do servidor Gunicorn.  
 
-> ***Obs.:** É imprescindível que a lib **Gunicorn** esteja presente no arquivo `requirements.txt`*
+> ***Obs.:** É imprescindível que a lib **Gunicorn** esteja presente no arquivo `requirements.txt`* `gunicorn==23.0.0`
 
 - **nginx**: Serviço do servidor Nginx, configurado para servir os arquivos estáticos e fazer proxy reverso para o Gunicorn.
 
